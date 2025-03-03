@@ -1,35 +1,36 @@
 import streamlit as st
 import random
 
-# Set page config
-st.set_page_config(page_title="Hangman Game", page_icon="🎭")
-
-# Custom CSS for Full Black Background & Gold Text
+# --- Custom Dark Theme CSS ---
 st.markdown(
     """
     <style>
         body {
-            background-color: black !important;
+            background-color: black;
+            color: gold;
         }
         .stApp {
+            background-color: black;
+            color: gold;
+        }
+        .stTextInput>div>div>input {
             background-color: black !important;
             color: gold !important;
+            border: 1px solid gold !important;
         }
-        h1, h2, h3, h4, h5, h6, p, label, div, span {
-            color: gold !important;
-        }
-        .stTextInput input, .stSelectbox div, .stButton button, .stRadio div[role="radiogroup"] label {
-            background-color: black !important;
-            color: gold !important;
-            border: 2px solid gold !important;
-        }
-        .stButton button {
+        .stButton>button {
             background-color: gold !important;
             color: black !important;
-            font-weight: bold !important;
+            font-weight: bold;
+            border-radius: 5px;
         }
         .stSidebar {
             background-color: black !important;
+        }
+        .stSidebar .stRadio label {
+            color: gold !important;
+        }
+        .stSidebar .stTitle, .stSidebar .stHeader {
             color: gold !important;
         }
     </style>
@@ -37,87 +38,69 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Sidebar Navigation
+# --- Sidebar Navigation ---
 st.sidebar.title("🔎 Navigate")
 page = st.sidebar.radio("Go to:", ["Home", "Play Hangman"])
 
-# ---- HOME PAGE ----
+# --- Home Page ---
 if page == "Home":
-    st.title("🎭 Welcome to Hangman!")
-    st.image("banner.webp", use_container_width=True)
-    st.write(
-        "💡 **How to Play:**\n"
-        "- Guess the word by suggesting one letter at a time.\n"
-        "- If your guess is correct, the letter is revealed.\n"
-        "- If wrong, you lose an attempt.\n"
-        "- Win by guessing the word before running out of attempts!"
-    )
-    st.write("🔹 Select 'Play Hangman' from the sidebar to start!")
+    st.title("🎮 Hangman Game")
+    st.image("banner.png", use_container_width=True)
+    st.write("Welcome to the Hangman game! Select 'Play Hangman' from the sidebar to start playing.")
 
-# ---- GAME PAGE ----
-else:
+# --- Play Hangman Page ---
+elif page == "Play Hangman":
     st.title("🎮 Play Hangman")
 
-    # Sidebar for Game Mode Selection
-    game_mode = st.sidebar.radio("Select Mode:", ["Single Player", "Multiplayer"])
+    # Initialize session state variables
+    if "word" not in st.session_state:
+        words_with_hints = {
+            "python": "A popular programming language",
+            "streamlit": "A framework for data apps",
+            "github": "A platform for code collaboration",
+            "hangman": "The name of this game",
+            "laptop": "A portable computer"
+        }
+        st.session_state.word, st.session_state.hint = random.choice(list(words_with_hints.items()))
+        st.session_state.display_word = "_" * len(st.session_state.word)
+        st.session_state.attempts = 6
+        st.session_state.guessed_letters = set()
+        st.session_state.message = ""
 
-    # Hangman Word List with Hints
-    words_with_hints = {
-        "PYTHON": "A popular programming language",
-        "STREAMLIT": "Python framework for data apps",
-        "GITHUB": "A platform for code collaboration",
-        "JUPYTER": "A notebook for data science",
-        "ARTIFICIAL": "Related to AI and Machine Learning",
-        "DEVELOPER": "A person who writes code",
-        "COMPUTER": "An electronic machine"
-    }
+    st.write(f"💡 **Hint:** {st.session_state.hint}")
 
-    def get_random_word():
-        word, hint = random.choice(list(words_with_hints.items()))
-        return word, hint
+    # Display word progress
+    st.write(" ".join(st.session_state.display_word))
 
-    # ---- Multiplayer Mode ----
-    if game_mode == "Multiplayer":
-        st.write("👥 **Multiplayer Mode**")
-        word = st.text_input("Player 1: Enter a word for Player 2 to guess:", type="password").upper()
-        if word:
-            st.session_state["word"] = word
-            st.success("✅ Word set! Player 2, start guessing!")
+    # Letter input
+    guess = st.text_input("Guess a letter:", key="guess_input", max_chars=1).lower()
 
-    # ---- Single Player Mode ----
-    else:
-        st.write("🤖 **Single Player Mode**")
-
-        # ✅ **Fix: Initialize word & hint before using session state**
-        if "word" not in st.session_state or "hint" not in st.session_state:
-            st.session_state["word"], st.session_state["hint"] = get_random_word()
-
-        st.write(f"💡 **Hint:** {st.session_state['hint']}")
-
-    # Hangman Game Logic
-    word = st.session_state["word"]
-    hidden_word = ["_" for _ in word]
-    attempts = 6
-    guessed_letters = set()
-
-    st.write(" ".join(hidden_word))
-    guess = st.text_input("Guess a letter:", key="guess").upper()
-
-    if guess:
-        if guess in guessed_letters:
-            st.warning("⚠ You've already guessed that letter!")
-        elif guess in word:
-            guessed_letters.add(guess)
-            for idx, letter in enumerate(word):
-                if letter == guess:
-                    hidden_word[idx] = letter
+    if st.button("Submit Guess"):
+        if not guess or not guess.isalpha():
+            st.session_state.message = "⚠️ Please enter a valid letter!"
+        elif guess in st.session_state.guessed_letters:
+            st.session_state.message = "⚠️ You already guessed this letter!"
+        elif guess in st.session_state.word:
+            st.session_state.guessed_letters.add(guess)
+            updated_display = "".join([
+                letter if letter in st.session_state.guessed_letters else "_"
+                for letter in st.session_state.word
+            ])
+            st.session_state.display_word = updated_display
+            st.session_state.message = "✅ Correct Guess!"
         else:
-            attempts -= 1
-            st.error(f"❌ Wrong guess! {attempts} attempts left.")
+            st.session_state.guessed_letters.add(guess)
+            st.session_state.attempts -= 1
+            st.session_state.message = "❌ Wrong Guess!"
 
-    st.write(" ".join(hidden_word))
+        if "_" not in st.session_state.display_word:
+            st.success("🎉 You Won!")
+            st.session_state.word = ""
 
-    if "_" not in hidden_word:
-        st.success(f"🎉 You won! The word was: {word}")
-    elif attempts == 0:
-        st.error(f"💀 Game Over! The correct word was: {word}")
+        elif st.session_state.attempts == 0:
+            st.error(f"❌ Game Over! The word was: {st.session_state.word}")
+            st.session_state.word = ""
+
+    # Show message and remaining attempts
+    st.write(f"📝 {st.session_state.message}")
+    st.write(f"❤️ Attempts Left: {st.session_state.attempts}")
