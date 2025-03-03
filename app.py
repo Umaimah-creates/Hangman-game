@@ -45,7 +45,7 @@ page = st.sidebar.radio("Go to:", ["Home", "Play Hangman"])
 # --- Home Page ---
 if page == "Home":
     st.title("🎮 Hangman Game")
-    st.image("banner.png", use_container_width=True)
+    st.image("banner.webpg", use_container_width=True)
     st.write("Welcome to the Hangman game! Select 'Play Hangman' from the sidebar to start playing.")
 
 # --- Play Hangman Page ---
